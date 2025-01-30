@@ -14,31 +14,37 @@ const io = new Server(server, {
   },
 });
 
-// app.use(
-//   cors({
-//     origin: "http://localhost:5173/",
-//     methods: ["GET", "POST"],
-//     credentials: true,
-//   })
-// );
+// Enable CORS Middleware
+app.use(cors({
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST"],
+  credentials: true,
+}));
+
 app.get("/", (req, res) => {
-  res.send("hello world!");
+  res.send("Hello world!");
 });
 
 io.on("connection", (socket) => {
-  console.log("Socket ID", socket.id);
-  //   socket.emit("welcome",`Welcome to the WebSocket ${socket.id}`);
-  //   socket.broadcast.emit("welcome", `Welcome to the WebSocket ${socket.id}`);
-  socket.on("disconnect", ()=>{
-    console.log("User disconnected ", socket.id);
+  console.log("Client Connected:", socket.id);
+
+  // User joins a room
+  socket.on("join-room", (room) => {
+    socket.join(room);
+    console.log(`${socket.id} joined room: ${room}`);
   });
 
-  socket.on("message",(data)=>{
-    console.log("Data received ", data);
-    // io.emit("message", data);
-  })
+  // Receiving message from client and sending it to a specific room
+  socket.on("message", ({ room, message }) => {
+    console.log(`Data received from ${socket.id}: ${message} (Room: ${room})`);
+    io.to(room).emit("recived-message", { message, from: socket.id });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
 server.listen(port, () => {
-  console.log("listening on ", port);
+  console.log("Listening on port", port);
 });
